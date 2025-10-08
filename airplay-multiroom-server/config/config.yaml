@@ -1,0 +1,151 @@
+# Konfiguration für den AirPlay Multiroom Server
+
+server:
+  name: "AirPlay Multiroom Server"
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+# AirPlay Empfänger Konfiguration
+airplay:
+  service_name: "Multiroom Audio"
+  port: 5001
+  # Buffer-Zeit in Sekunden für Synchronisation
+  buffer_time: 2.0
+  # Audio-Format Einstellungen
+  sample_rate: 44100
+  bit_depth: 16
+  channels: 2
+
+# Geräteverwaltung
+devices:
+  # Automatische Geräteerkennung via mDNS
+  auto_discovery: true
+  # Timeout für Geräteerkennung in Sekunden
+  discovery_timeout: 30
+  # Maximale Anzahl gleichzeitiger Verbindungen
+  max_connections: 10
+  
+  # Manuell konfigurierte Geräte (optional)
+  manual_devices:
+    - name: "Wohnzimmer HomePod"
+      host: "192.168.1.100"
+      port: 7000
+      enabled: true
+    - name: "Küche Speaker"
+      host: "192.168.1.101"
+      port: 7000
+      enabled: true
+    - name: "Schlafzimmer"
+      host: "192.168.1.102"
+      port: 7000
+      enabled: false
+
+# Synchronisations-Einstellungen
+synchronization:
+  # Globale Verzögerung in Sekunden (für alle Geräte)
+  global_delay: 0.5
+  
+  # Gerätespezifische Verzögerungen (zur Feinabstimmung)
+  device_delays:
+    "Wohnzimmer HomePod": 0.0
+    "Küche Speaker": 0.1
+    "Schlafzimmer": 0.05
+  
+  # Sync-Algorithmus: "simple" oder "advanced"
+  sync_algorithm: "advanced"
+  
+  # Toleranz für Synchronisationsabweichungen (ms)
+  sync_tolerance: 50
+
+# Audio-Pipeline Konfiguration
+audio:
+  # GStreamer Pipeline Einstellungen
+  gstreamer:
+    buffer_size: 8192
+    latency: "low"
+    
+  # Audio-Qualität
+  quality:
+    # Bitrate für die Übertragung (kbps)
+    bitrate: 256
+    # Kompression: "none", "lossless", "lossy"
+    compression: "lossless"
+
+# Netzwerk-Einstellungen
+network:
+  # mDNS/Bonjour Konfiguration
+  mdns:
+    enabled: true
+    domain: "local"
+    
+  # Timeout-Einstellungen
+  timeouts:
+    connection: 10
+    read: 30
+    write: 30
+
+# Logging-Konfiguration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "/var/log/airplay-multiroom/server.log"
+  max_size: "10MB"
+  backup_count: 5
+  
+  # Komponenten-spezifisches Logging
+  components:
+    airplay_receiver: "INFO"
+    device_manager: "INFO"
+    audio_pipeline: "WARNING"
+    multiroom_coordinator: "INFO"
+    web_interface: "WARNING"
+
+# Web-Interface Konfiguration
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5000
+  
+  # Sicherheits-Einstellungen
+  security:
+    # Einfache Authentifizierung (optional)
+    auth_enabled: false
+    username: "admin"
+    password: "airplay123"
+    
+  # Statische Dateien
+  static_files: "/opt/airplay-multiroom-server/web/static"
+  templates: "/opt/airplay-multiroom-server/web/templates"
+
+# System-Integration
+system:
+  # Benutzer unter dem der Service läuft
+  user: "airplay"
+  group: "airplay"
+  
+  # PID-Datei
+  pid_file: "/run/airplay-multiroom-server.pid"
+  
+  # Arbeitsverzeichnis
+  working_directory: "/opt/airplay-multiroom-server"
+  
+  # Systemd-Integration
+  systemd:
+    enabled: true
+    auto_restart: true
+    restart_delay: 5
+
+# Performance-Einstellungen
+performance:
+  # Thread-Pool Größe
+  thread_pool_size: 4
+  
+  # Memory-Limits
+  max_memory_mb: 512
+  
+  # Audio-Buffer-Einstellungen
+  audio_buffer:
+    # Anzahl der Puffer
+    buffer_count: 4
+    # Puffergröße in Samples
+    buffer_size: 4096

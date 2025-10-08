@@ -1,0 +1,61 @@
+[Unit]
+Description=AirPlay Multiroom Server
+Documentation=https://github.com/your-repo/airplay-multiroom-server
+After=network.target sound.service avahi-daemon.service
+Wants=network.target
+Requires=avahi-daemon.service
+
+[Service]
+Type=simple
+User=airplay
+Group=airplay
+WorkingDirectory=/opt/airplay-multiroom-server
+Environment=PATH=/opt/airplay-multiroom-server/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONPATH=/opt/airplay-multiroom-server
+Environment=GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
+Environment=GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0
+
+# Hauptprozess
+ExecStart=/opt/airplay-multiroom-server/venv/bin/python -m src --config /etc/airplay-multiroom/config.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart-Verhalten
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=airplay-multiroom-server
+
+# Sicherheitseinstellungen
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Dateisystem-Zugriff
+ReadWritePaths=/var/log/airplay-multiroom /tmp
+ReadOnlyPaths=/etc/airplay-multiroom /opt/airplay-multiroom-server
+
+# Netzwerk-Zugriff (erforderlich für AirPlay)
+PrivateNetwork=false
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Ressourcen-Limits
+LimitNOFILE=65536
+MemoryMax=1G
+CPUQuota=200%
+
+# Capabilities (minimale Rechte für Audio und Netzwerk)
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
