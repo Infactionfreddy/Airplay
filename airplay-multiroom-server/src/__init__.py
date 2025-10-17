@@ -1,4 +1,25 @@
-"""
+# IPv6 für zeroconf deaktivieren - Config anpassen
+cat >> /etc/airplay-multiroom/config.yaml << 'EOF'
+
+# Netzwerk-Einstellungen
+network:
+  ipv6_enabled: false
+  bind_address: "0.0.0.0"
+EOF
+
+# Prüfen ob IPv6 im Container verfügbar ist
+ip -6 addr show
+
+# Falls kein IPv6, auch im System deaktivieren
+sysctl net.ipv6.conf.all.disable_ipv6=1
+
+# Service neu starten
+systemctl start airplay-multiroom-server
+sleep 5
+systemctl status airplay-multiroom-server
+
+# Logs prüfen
+journalctl -u airplay-multiroom-server -n 30 --no-pager"""
 Hauptmodul für den AirPlay Multiroom Server
 """
 import asyncio

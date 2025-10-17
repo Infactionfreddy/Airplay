@@ -124,35 +124,52 @@ class AirPlayServiceListener(ServiceListener):
     
     def __init__(self, device_manager):
         self.device_manager = device_manager
+        self.loop = None
         
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Neuer Service entdeckt"""
-        logger.debug(f"Service hinzugefügt: {name} ({type_})")
+        logger.info(f"AirPlay-Gerät entdeckt: {name} ({type_})")
         
         # Service-Informationen abrufen
         service_info = zc.get_service_info(type_, name)
         if service_info:
-            asyncio.create_task(
-                self.device_manager._handle_service_added(service_info)
-            )
+            # Sicherstellen dass wir im richtigen Event-Loop sind
+            if self.loop is None:
+                self.loop = self.device_manager._get_event_loop()
+            
+            if self.loop:
+                asyncio.run_coroutine_threadsafe(
+                    self.device_manager._handle_service_added(service_info),
+                    self.loop
+                )
             
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Service entfernt"""
-        logger.debug(f"Service entfernt: {name} ({type_})")
+        logger.info(f"AirPlay-Gerät entfernt: {name} ({type_})")
         
-        asyncio.create_task(
-            self.device_manager._handle_service_removed(name)
-        )
+        if self.loop is None:
+            self.loop = self.device_manager._get_event_loop()
+            
+        if self.loop:
+            asyncio.run_coroutine_threadsafe(
+                self.device_manager._handle_service_removed(name),
+                self.loop
+            )
         
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Service aktualisiert"""
-        logger.debug(f"Service aktualisiert: {name} ({type_})")
+        logger.debug(f"AirPlay-Gerät aktualisiert: {name} ({type_})")
         
         service_info = zc.get_service_info(type_, name)
         if service_info:
-            asyncio.create_task(
-                self.device_manager._handle_service_updated(service_info)
-            )
+            if self.loop is None:
+                self.loop = self.device_manager._get_event_loop()
+                
+            if self.loop:
+                asyncio.run_coroutine_threadsafe(
+                    self.device_manager._handle_service_updated(service_info),
+                    self.loop
+                )
 
 
 class DeviceManager:
@@ -169,6 +186,9 @@ class DeviceManager:
         self.zeroconf = None
         self.service_browser = None
         self.service_listener = None
+        
+        # Event Loop Referenz
+        self.event_loop = None
         
         # Discovery-Einstellungen
         self.auto_discovery = config.get('devices.auto_discovery', True)
@@ -189,14 +209,39 @@ class DeviceManager:
         self.discovery_task = None
         self.monitoring_task = None
         
+    def _get_event_loop(self):
+        """Gibt den Event-Loop zurück"""
+        if self.event_loop is None:
+            try:
+                self.event_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                pass
+        return self.event_loop
+        
     async def initialize(self):
         """Initialisiert den Device Manager"""
         logger.info("Initialisiere Device Manager...")
         
-        # Zeroconf initialisieren
+        # Event Loop speichern
+        self.event_loop = asyncio.get_running_loop()
+        
+        # Zeroconf initialisieren mit IPv4-only für bessere Kompatibilität
         if self.auto_discovery:
-            self.zeroconf = Zeroconf()
-            self.service_listener = AirPlayServiceListener(self)
+            try:
+                # IPv4-only Modus für LXC/Container Kompatibilität
+                self.zeroconf = Zeroconf(interfaces=["0.0.0.0"])
+                self.service_listener = AirPlayServiceListener(self)
+                logger.info("Zeroconf initialisiert (IPv4-only Modus)")
+            except Exception as e:
+                logger.error(f"Fehler beim Initialisieren von Zeroconf: {e}")
+                logger.info("Versuche Zeroconf ohne spezifisches Interface...")
+                try:
+                    self.zeroconf = Zeroconf()
+                    self.service_listener = AirPlayServiceListener(self)
+                    logger.info("Zeroconf initialisiert (Auto-Modus)")
+                except Exception as e2:
+                    logger.error(f"Zeroconf Initialisierung fehlgeschlagen: {e2}")
+                    self.auto_discovery = False
             
         # Manuell konfigurierte Geräte hinzufügen
         await self._load_manual_devices()
@@ -441,13 +486,12 @@ class DeviceManager:
             # ServiceInfo-Daten hinzufügen
             device.update_from_service_info(service_info)
             
-            # Verfügbarkeit testen
-            if await self._test_device_connection(device):
-                device.status = DeviceStatus.DISCOVERED
-                return device
-            else:
-                logger.warning(f"Gerät {name} nicht erreichbar")
-                return None
+            # Gerät als entdeckt markieren (auch ohne Connection-Test)
+            # Viele AirPlay-Geräte antworten nicht auf direkte TCP-Verbindungen
+            device.status = DeviceStatus.DISCOVERED
+            logger.info(f"Gerät erstellt: {name} ({host}:{port}) - Typ: {device_type.value}")
+            
+            return device
                 
         except Exception as e:
             logger.error(f"Fehler beim Erstellen des Geräts aus Service: {e}")

@@ -26,20 +26,13 @@ devices:
   # Maximale Anzahl gleichzeitiger Verbindungen
   max_connections: 10
   
-  # Manuell konfigurierte Geräte (optional)
-  manual_devices:
-    - name: "Wohnzimmer HomePod"
-      host: "192.168.1.100"
-      port: 7000
-      enabled: true
-    - name: "Küche Speaker"
-      host: "192.168.1.101"
-      port: 7000
-      enabled: true
-    - name: "Schlafzimmer"
-      host: "192.168.1.102"
-      port: 7000
-      enabled: false
+  # Manuell konfigurierte Geräte (optional, werden zusätzlich zu automatisch erkannten Geräten hinzugefügt)
+  # Diese Liste kann leer bleiben wenn nur automatische Erkennung gewünscht ist
+  manual_devices: []
+  #  - name: "Beispiel Gerät"
+  #    host: "192.168.1.100"
+  #    port: 7000
+  #    enabled: true
 
 # Synchronisations-Einstellungen
 synchronization:

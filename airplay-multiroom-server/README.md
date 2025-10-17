@@ -66,30 +66,66 @@ sudo systemctl start airplay-multiroom-server
 
 Die Konfiguration erfolgt über `/etc/airplay-multiroom/config.yaml`:
 
+### Automatische Geräteerkennung (empfohlen)
+
+Der Server erkennt AirPlay-Geräte automatisch über mDNS/Bonjour. Dies ist die einfachste Methode:
+
 ```yaml
-server:
-  name: "Multiroom Server"
-  port: 5000
-  
-airplay:
-  receiver_port: 5001
-  buffer_time: 2.0  # Sekunden Puffer für Synchronisation
-  
 devices:
-  discovery: true
+  auto_discovery: true  # Automatische Erkennung aktiviert
+  manual_devices: []    # Keine manuellen Geräte nötig
+```
+
+Der Server findet automatisch:
+- Sonos-Lautsprecher mit AirPlay 2
+- HomePods und HomePod minis
+- Apple TV
+- AirPort Express
+- Andere AirPlay-fähige Geräte
+
+**Wichtig für LXC/Container-Umgebungen:**
+- Multicast-Routing muss auf dem Host aktiviert sein
+- Auf Proxmox: `iptables -I FORWARD -m pkttype --pkt-type multicast -j ACCEPT`
+- Avahi-Daemon muss im Container laufen
+
+### Manuelle Gerätekonfiguration (optional)
+
+Falls automatische Erkennung nicht funktioniert oder zusätzliche Geräte hinzugefügt werden sollen:
+
+```yaml
+devices:
+  auto_discovery: true  # Kann parallel aktiviert bleiben
   manual_devices:
     - name: "Wohnzimmer"
       host: "192.168.1.100"
       port: 7000
+      enabled: true
     - name: "Küche"
       host: "192.168.1.101"
       port: 7000
+      enabled: true
+```
 
+**Geräte-IPs herausfinden:**
+```bash
+# AirPlay-Geräte im Netzwerk anzeigen
+avahi-browse -t _raop._tcp -r
+
+# Oder:
+avahi-browse -t _airplay._tcp -r
+```
+
+### Synchronisations-Einstellungen
+
+```yaml
+airplay:
+  buffer_time: 2.0  # Sekunden Puffer für Synchronisation
+  
 synchronization:
   global_delay: 0.5  # Globale Verzögerung in Sekunden
-  device_specific_delays:
+  device_delays:
     "Wohnzimmer": 0.0
-    "Küche": 0.1
+    "Küche": 0.1  # 100ms zusätzliche Verzögerung
 ```
 
 ## Web-Interface
