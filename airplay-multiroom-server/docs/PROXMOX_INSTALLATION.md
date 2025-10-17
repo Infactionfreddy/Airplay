@@ -55,7 +55,7 @@ apt upgrade -y
 ```bash
 # Projekt auf Host clonen/kopieren
 cd /tmp
-git clone https://github.com/Infactionfreddy/Airplay/airplay-multiroom-server.git
+git clone https://github.com/Infactionfreddy/Airplay/airplay.git
 
 # In Container kopieren
 cp -r /tmp/airplay-multiroom-server /var/lib/lxc/100/rootfs/opt/
