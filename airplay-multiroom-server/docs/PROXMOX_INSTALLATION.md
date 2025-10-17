@@ -55,7 +55,7 @@ apt upgrade -y
 ```bash
 # Projekt auf Host clonen/kopieren
 cd /tmp
-git clone https://github.com/your-repo/airplay-multiroom-server.git
+git clone https://github.com/Infactionfreddy/Airplay/airplay-multiroom-server.git
 
 # In Container kopieren
 cp -r /tmp/airplay-multiroom-server /var/lib/lxc/100/rootfs/opt/
@@ -254,6 +254,65 @@ ip addr show eth0
 pct exec 100 -- ip addr show eth0
 ```
 
+## Server aktualisieren
+
+### Automatisches Update (empfohlen)
+
+**Auf dem Proxmox Host** das Update-Script ausführen:
+
+```bash
+# Projekt lokal aktualisieren (falls via Git geklont)
+cd /tmp/airplay-multiroom-server
+git pull
+
+# Update-Script ausführen
+./scripts/update-server.sh 100 /tmp/airplay-multiroom-server
+```
+
+Das Script führt automatisch aus:
+- ✅ Backup der aktuellen Installation
+- ✅ Service stoppen
+- ✅ Dateien aktualisieren
+- ✅ Dependencies aktualisieren
+- ✅ Service neu starten
+- ✅ Status-Überprüfung
+
+### Manuelles Update im Container
+
+Falls Git im Container installiert ist:
+
+```bash
+# Im Container
+cd /opt/airplay-multiroom-server
+./scripts/update-local.sh
+```
+
+### Manuelles Update von Host
+
+```bash
+# Auf Proxmox Host - Dateien kopieren
+cd /tmp
+git clone https://github.com/Infactionfreddy/Airplay/airplay-multiroom-server.git
+cd airplay-multiroom-server
+git pull
+
+# Service stoppen
+pct exec 100 -- systemctl stop airplay-multiroom-server
+
+# Dateien kopieren
+cp -r src /var/lib/lxc/100/rootfs/opt/airplay-multiroom-server/
+cp -r scripts /var/lib/lxc/100/rootfs/opt/airplay-multiroom-server/
+
+# Python-Cache löschen
+pct exec 100 -- find /opt/airplay-multiroom-server -name "*.pyc" -delete
+
+# Dependencies aktualisieren
+pct exec 100 -- bash -c "cd /opt/airplay-multiroom-server && source venv/bin/activate && pip install -r requirements.txt"
+
+# Service starten
+pct exec 100 -- systemctl start airplay-multiroom-server
+```
+
 ## Nützliche Befehle
 
 ```bash
@@ -263,9 +322,18 @@ systemctl restart airplay-multiroom-server
 # Logs in Echtzeit
 journalctl -u airplay-multiroom-server -f
 
+# Service-Status
+systemctl status airplay-multiroom-server
+
 # Python-Cache löschen (bei Problemen nach Code-Änderungen)
 find /opt/airplay-multiroom-server -name "*.pyc" -delete
 
 # Container neu starten (von Proxmox Host)
 pct restart 100
+
+# Geräte anzeigen
+curl -s http://localhost:5000/api/devices | jq
+
+# Discovery testen
+/opt/airplay-multiroom-server/venv/bin/python /opt/airplay-multiroom-server/scripts/test-discovery.py
 ```

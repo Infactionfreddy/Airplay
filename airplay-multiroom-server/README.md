@@ -166,6 +166,38 @@ AirPlay Input → Decoder → Buffer → Sync Engine → Multiple AirPlay Output
               Timing Alignment
 ```
 
+## Server aktualisieren
+
+### Auf Proxmox LXC Container
+
+**Automatisches Update vom Proxmox Host:**
+```bash
+# Projekt aktualisieren
+cd /tmp/airplay-multiroom-server
+git pull
+
+# Update-Script ausführen
+./scripts/update-server.sh 100 /tmp/airplay-multiroom-server
+```
+
+**Oder direkt im Container:**
+```bash
+cd /opt/airplay-multiroom-server
+./scripts/update-local.sh
+```
+
+Siehe [`scripts/README.md`](scripts/README.md) für Details zu allen verfügbaren Scripts.
+
+### Standard-Installation
+
+```bash
+cd /opt/airplay-multiroom-server
+git pull
+sudo systemctl stop airplay-multiroom-server
+pip install -r requirements.txt
+sudo systemctl start airplay-multiroom-server
+```
+
 ## Troubleshooting
 
 ### Häufige Probleme
@@ -173,6 +205,8 @@ AirPlay Input → Decoder → Buffer → Sync Engine → Multiple AirPlay Output
 1. **Keine Geräte gefunden**
    - Prüfen Sie die mDNS-Konfiguration
    - Stellen Sie sicher, dass Avahi läuft: `sudo systemctl status avahi-daemon`
+   - Bei LXC: Multicast-Routing aktivieren (siehe [Proxmox Installation](docs/PROXMOX_INSTALLATION.md))
+   - Discovery testen: `./venv/bin/python scripts/test-discovery.py`
 
 2. **Audio-Aussetzer**
    - Erhöhen Sie die Puffergröße in der Konfiguration
